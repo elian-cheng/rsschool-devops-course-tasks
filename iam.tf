@@ -1,4 +1,10 @@
+data "aws_iam_role" "github_actions_role" {
+  name = "GithubActionsRole"
+}
+
 resource "aws_iam_role" "github_actions_role" {
+   # Only create if the data source doesn't return a role
+  count = length(data.aws_iam_role.github_actions_role) == 0 ? 1 : 0
   name = "GithubActionsRole"
 
   assume_role_policy = <<EOF
