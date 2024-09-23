@@ -29,7 +29,7 @@ aws configure
 ```
 
 3. **Set Up GitHub Secrets**:
-   In your GitHub repository, navigate to Settings > Secrets and Variables > Actions. Add the following secrets:
+   In your GitHub repository, navigate to Settings > Secrets and Variables > Actions. Add the following secrets to the environment "development":
    - AWS_ACCOUNT_ID: Your AWS account ID.
    - AWS_REGION: The AWS region (e.g., us-east-1).
 
@@ -74,9 +74,11 @@ To deploy the infrastructure:
 To verify that your GitHub Actions workflow works:
 
 1. **Push Your Changes**:
+
    - Make any change (e.g., a comment in a README file) and push it to the main branch or create a pull request.
 
 2. **Check the Workflow Run**:
+
    - Navigate to the Actions tab in your GitHub repository to view the list of workflow runs.
    - Click on the most recent run to view details, checking the status of each job.
 

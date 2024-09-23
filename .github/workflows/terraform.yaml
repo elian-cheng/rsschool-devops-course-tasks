@@ -11,6 +11,7 @@ on:
 jobs:
   terraform-check:
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -23,6 +24,7 @@ jobs:
 
   terraform-plan:
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -45,6 +47,7 @@ jobs:
   terraform-apply:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
