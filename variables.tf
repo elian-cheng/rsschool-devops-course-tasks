@@ -13,7 +13,7 @@ variable "terraform_state_bucket" {
 variable "account_id" {
   description = "The AWS Account ID where resources will be deployed"
   type        = string
-  default = "656732674839"
+  default     = "656732674839"
 }
 
 variable "github_org" {
