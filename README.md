@@ -28,6 +28,11 @@ This repository contains Terraform configuration files to set up AWS infrastruct
 aws configure
 ```
 
+3. **Set Up GitHub Secrets**:
+   In your GitHub repository, navigate to Settings > Secrets and Variables > Actions. Add the following secrets:
+   - AWS_ACCOUNT_ID: Your AWS account ID.
+   - AWS_REGION: The AWS region (e.g., us-east-1).
+
 # Terraform Configuration
 
 ## Variables

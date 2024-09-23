@@ -37,8 +37,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::656732674839:role/GithubActionsRole
-          aws-region: eu-north-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+          aws-region: ${{ secrets.AWS_REGION }}
           audience: sts.amazonaws.com
 
       - name: Terraform Init
@@ -48,7 +48,6 @@ jobs:
         run: terraform plan
 
   terraform-apply:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -60,8 +59,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::656732674839:role/GithubActionsRole
-          aws-region: eu-north-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+          aws-region: ${{ secrets.AWS_REGION }}
           audience: sts.amazonaws.com
 
       - name: Terraform Init
