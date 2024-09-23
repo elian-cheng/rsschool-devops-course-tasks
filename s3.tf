@@ -3,7 +3,7 @@ data "aws_s3_bucket" "terraform_state" {
 }
 resource "aws_s3_bucket" "terraform_state" {
   # Only create if the data source doesn't return a bucket
-  count = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
+  count  = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
   bucket = var.terraform_state_bucket
 
   lifecycle {
@@ -12,7 +12,7 @@ resource "aws_s3_bucket" "terraform_state" {
 }
 
 resource "aws_s3_bucket_versioning" "enabled" {
-  count = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
+  count  = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
   bucket = aws_s3_bucket.terraform_state.id
 
   versioning_configuration {
@@ -21,7 +21,7 @@ resource "aws_s3_bucket_versioning" "enabled" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
-  count = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
+  count  = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
   bucket = aws_s3_bucket.terraform_state.id
 
   rule {
@@ -32,7 +32,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
 }
 
 resource "aws_s3_bucket_public_access_block" "public_access" {
-  count = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
+  count                   = length(data.aws_s3_bucket.terraform_state) == 0 ? 1 : 0
   bucket                  = aws_s3_bucket.terraform_state.id
   block_public_acls       = true
   block_public_policy     = true
