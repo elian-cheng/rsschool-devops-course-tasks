@@ -33,6 +33,7 @@ aws configure
    - AWS_ACCOUNT_ID: Your AWS account ID.
    - AWS_REGION: The AWS region (e.g., us-east-1).
    - AWS_EC2_PRIVATE_KEY: private key to connect to private subnet instances from bastion host
+   - AWS_EC2_PUBLIC_KEY: public key to connect to instances
 
 # Terraform Configuration
 
@@ -49,6 +50,7 @@ The Terraform configurations use the following variables:
 - **public_subnet_cidrs**: CIDR blocks for the public subnets.
 - **private_subnet_cidrs**: CIDR blocks for the private subnets.
 - **private_key**: The private key used for SSH access to the private instance.
+- **public_key**: The public key used for SSH access to instances.
 
 ## File Structure
 

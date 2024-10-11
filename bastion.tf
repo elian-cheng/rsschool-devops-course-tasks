@@ -10,9 +10,8 @@ data "aws_ami" "ubuntu_ami" {
 
 resource "aws_key_pair" "ec2_auth_key" {
   key_name   = "aws-ec2"
-  public_key = file("~/.ssh/aws-ec2.pub")
+  public_key = var.public_key  
 }
-
 
 resource "aws_instance" "K8S_bastion_host" {
   ami               = data.aws_ami.ubuntu_ami.id
