@@ -41,6 +41,9 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           audience: sts.amazonaws.com
 
+      - name: Clear Terraform cache
+        run: rm -rf .terraform
+
       - name: Terraform Init
         run: terraform init
 
@@ -63,6 +66,9 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
           aws-region: ${{ secrets.AWS_REGION }}
           audience: sts.amazonaws.com
+
+      - name: Clear Terraform cache
+        run: rm -rf .terraform
 
       - name: Terraform Init
         run: terraform init
