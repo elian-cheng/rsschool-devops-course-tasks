@@ -55,5 +55,5 @@ variable "private_key" {
 variable "public_key" {
   description = "The public key for the EC2 instance"
   type        = string
-  sensitive = true
+  sensitive   = true
 }
