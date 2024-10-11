@@ -9,3 +9,19 @@ terraform {
     region = "eu-north-1"
   }
 }
+
+data "aws_availability_zones" "available" {}
+
+locals {
+  name   = "${basename(path.cwd)}"
+  region = "eu-north-1"
+
+  vpc_cidr = var.vpc_cidr
+  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  tags = {
+    Project    = local.name
+    GithubRepo = var.github_repo
+    GithubOrg  = var.github_org
+  }
+}

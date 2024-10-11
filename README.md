@@ -4,7 +4,7 @@ Repo for RS School AWS DevOps course
 
 ## Overview
 
-This repository contains Terraform configuration files to set up AWS infrastructure, including an S3 bucket for storing Terraform state and an IAM role for GitHub Actions.
+This repository contains Terraform configuration files to set up basic networking infrastructure for a Kubernetes cluster in AWS. The setup includes a VPC, public and private subnets, routing configurations, a NAT Gateway, and optional resources like a bastion host. An S3 bucket is used to store the Terraform state, and an IAM role is configured to allow GitHub Actions to interact with AWS.
 
 ## Prerequisites
 
@@ -32,6 +32,7 @@ aws configure
    In your GitHub repository, navigate to Settings > Secrets and Variables > Actions. Add the following secrets:
    - AWS_ACCOUNT_ID: Your AWS account ID.
    - AWS_REGION: The AWS region (e.g., us-east-1).
+   - AWS_EC2_PRIVATE_KEY: private key to connect to private subnet instances from bastion host
 
 # Terraform Configuration
 
@@ -44,14 +45,25 @@ The Terraform configurations use the following variables:
 - **account_id**: Your AWS account ID.
 - **github_org**: Your GitHub organization or username.
 - **github_repo**: The name of your GitHub repository.
+- **vpc_cidr**: CIDR block for the VPC.
+- **public_subnet_cidrs**: CIDR blocks for the public subnets.
+- **private_subnet_cidrs**: CIDR blocks for the private subnets.
+- **private_key**: The private key used for SSH access to the private instance.
 
 ## File Structure
 
-- **.github/workflows/terraform.yaml**: GitHub Actions workflow configuration.
+- **.github/workflows/terraform.yml**: GitHub Actions workflow configuration.
 - **main.tf**: Provider configuration and backend settings.
 - **variables.tf**: Variable definitions.
-- **s3.tf**: S3 bucket resource definition.
-- **iam.tf**: IAM role resource definition.
+- **vpc.tf**: VPC definition.
+- **subnets.tf**: Subnets definitions.
+- **sg.tf**: Security groups definitions.
+- **routing.tf**: Routes definitions.
+- **nacl.tf**: Network ACL definitions.
+- **ig.tf**: Internet gateway definition.
+- **bastion.tf**: Bastion host definition.
+- **ec2-private.tf**: Private instance definition (in private subnet).
+- **outputs.tf**: Resources outputs.
 
 ## Workflow Overview
 
