@@ -13,7 +13,7 @@ terraform {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name   = "${basename(path.cwd)}"
+  name   = basename(path.cwd)
   region = "eu-north-1"
 
   vpc_cidr = var.vpc_cidr

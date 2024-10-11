@@ -21,5 +21,3 @@ resource "aws_subnet" "K8S_private_subnet" {
     Name = "K8S Private Subnet ${count.index + 1}"
   }
 }
-
-data "aws_availability_zones" "available" {}
