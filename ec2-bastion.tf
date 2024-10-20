@@ -8,11 +8,6 @@ data "aws_ami" "ubuntu_ami" {
   }
 }
 
-resource "aws_key_pair" "ec2_auth_key" {
-  key_name   = "aws-ec2"
-  public_key = var.public_key
-}
-
 resource "aws_instance" "K8S_bastion_host" {
   ami               = data.aws_ami.ubuntu_ami.id
   instance_type     = "t3.micro"
@@ -21,16 +16,17 @@ resource "aws_instance" "K8S_bastion_host" {
 
   associate_public_ip_address = true
 
-  key_name               = aws_key_pair.ec2_auth_key.id
+  key_name               = k8s-cluster
   vpc_security_group_ids = [aws_security_group.K8S_public_sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
-              sudo apt update -y
+              sudo apt-get update -y
+              sudo ufw disable
               mkdir -p /home/ubuntu/.ssh
-              echo "${var.private_key}" > /home/ubuntu/.ssh/aws-ec2
-              chmod 400 /home/ubuntu/.ssh/aws-ec2
-              chown ubuntu:ubuntu /home/ubuntu/.ssh/aws-ec2
+              echo "${var.private_key}" > /home/ubuntu/.ssh/k8s-cluster.pem
+              chmod 400 /home/ubuntu/.ssh/k8s-cluster.pem
+              chown ubuntu:ubuntu /home/ubuntu/.ssh/k8s-cluster.pem
               EOF
 
 

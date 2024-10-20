@@ -52,8 +52,3 @@ variable "private_key" {
   sensitive   = true # Mark as sensitive to avoid showing the value in logs
 }
 
-variable "public_key" {
-  description = "The public key for the EC2 instance"
-  type        = string
-  sensitive   = true
-}

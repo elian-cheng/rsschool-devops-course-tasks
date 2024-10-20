@@ -18,7 +18,7 @@ output "bastion_host_public_ip" {
   value       = aws_instance.K8S_bastion_host.public_ip
 }
 
-output "private_ec2_private_ip" {
-  description = "The private IP of the private instance"
-  value       = aws_instance.K8S_private_instance.private_ip
+output "K8s_master_private_ip" {
+  description = "The private IP of the private instance K8s master"
+  value       = aws_instance.K8S_K3S_master.private_ip
 }

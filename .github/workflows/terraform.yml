@@ -48,7 +48,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var="private_key=${{ secrets.AWS_EC2_PRIVATE_KEY }}" -var="public_key=${{ secrets.AWS_EC2_PUBLIC_KEY }}"
+        run: terraform plan -var="private_key=${{ secrets.AWS_EC2_PRIVATE_KEY }}"
 
   terraform-apply:
     runs-on: ubuntu-latest
@@ -74,4 +74,4 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="private_key=${{ secrets.AWS_EC2_PRIVATE_KEY }}" -var="public_key=${{ secrets.AWS_EC2_PUBLIC_KEY }}"
+        run: terraform apply -auto-approve -var="private_key=${{ secrets.AWS_EC2_PRIVATE_KEY }}"
