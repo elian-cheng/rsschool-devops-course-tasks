@@ -100,6 +100,7 @@ To verify that your GitHub Actions workflow works:
    - If you're pushing to the main branch, check that terraform apply executes without errors.
 
 4. SSH into the Bastion Host:
+   ssh -i k8s-cluster.pem -L 6443:10.0.3.63:6443 ubuntu@13.60.79.204
 
 ```bash
 ssh -i path/to/your/private_key.pem ubuntu@<bastion_host_public_ip>
@@ -113,17 +114,31 @@ ssh -i /home/ubuntu/.ssh/k8s-cluster.pem ubuntu@<k3s_master_private_ip>
 
 6. Copy the k3s.yaml File to your local machine:
 
+Copy the file to the Bastion Host:
+
 ```bash
-scp -i /home/ubuntu/.ssh/k8s-cluster.pem ubuntu@<k3s_master_private_ip>:/etc/rancher/k3s/k3s.yaml /path/to/local/directory/k3s.yaml
+scp /etc/rancher/k3s/k3s.yaml ubuntu@<bastion_host_private_ip>:/home/ubuntu/k3s.yaml
 ```
 
-7. Set the KUBECONFIG Environment Variable on your local machine:
+Copy the k3s.yaml File to Your Local Machine:
+
+```bash
+scp -i path/to/your/private_key.pem ubuntu@<bastion_host_public_ip>:/home/ubuntu/k3s.yaml /path/to/local/directory/k3s.yaml
+```
+
+7. Setup the SSH tunnel to connect to the K8s master node private instance via Bastion Host from your local machine:
+
+```bash
+ssh -i path/to/your/private_key.pem -L 6443:<k3s-master-private-ip>:6443 ubuntu@<bastion-host-public-ip>
+```
+
+8. Set the KUBECONFIG Environment Variable on your local machine and verify the cluster (in another terminal, parallel to open SSH tunnel):
 
 ```bash
 export KUBECONFIG=/path/to/local/directory/k3s.yaml
 ```
 
-8. Verify the Cluster:
+Verify the Cluster:
 
 ```bash
 kubectl get nodes
@@ -135,64 +150,13 @@ kubectl get nodes
 kubectl apply -f https://k8s.io/examples/pods/simple-pod.yaml
 ```
 
-10. Set Up Monitoring with Prometheus and Grafana:
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/master/bundle.yaml
-```
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/grafana/helm-charts/main/charts/grafana/templates/deployment.yaml
-```
-
 ## Monitoring
 
-To see the monitoring setup with Prometheus and Grafana actually working, follow these steps:
+I use Cloud Grafana (with Prometheus) for the monitoring. Follow these steps:
 
-1. Get Prometheus Service Information:
-   kubectl get svc -n monitoring
-
-2. Port Forward Prometheus Service:
-   kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090
-
-3. Access Prometheus:
-   Open your web browser and go to http://localhost:9090.
-4. Get Grafana Service Information:
-   kubectl get svc -n monitoring
-
-5. Port Forward Grafana Service:
-   kubectl port-forward -n monitoring svc/grafana 3000:3000
-6. Access Grafana:
-   Open your web browser and go to http://localhost:3000
-
-7. Log in to Grafana:
-   Default Credentials:
-   Username: admin
-   Password: admin (or check the Grafana deployment for the actual password)
-   Change Password: You will be prompted to change the password on the first login.
-8. Add Prometheus as a Data Source in Grafana:
-
-- Navigate to Configuration:
-  Click on the gear icon (⚙️) on the left sidebar.
-  Select "Data Sources".
-- Add Data Source:
-  Click "Add data source".
-  Select "Prometheus".
-  Set the URL to http://prometheus-operated.monitoring.svc.cluster.local:9090 (or use the appropriate service name and namespace).
-- Save & Test: Click "Save & Test" to verify the connection. 9. Create Dashboards in Grafana:
-- Import Pre-built Dashboards:
-  Click on the "+" icon on the left sidebar.
-  Select "Import".
-  Use a dashboard ID from Grafana's [dashboard repository](https://grafana.com/grafana/dashboards) (e.g., 6417 for Kubernetes cluster monitoring).
-- Configure the Dashboard:
-  Set the Prometheus data source you added earlier.
-  Click "Import".
-
-9. Verify Monitoring
-
-- View Metrics in Prometheus:
-  Use the Prometheus web UI to query metrics.
-  Example query: up to see if all nodes are up.
-- View Dashboards in Grafana:
-  Navigate to the imported dashboard.
-  Verify that metrics and graphs are displayed correctly.
+1. Make sure Helm is installed and properly configured on your machine.
+   https://helm.sh/docs/intro/install/
+2. Create a Grafana Cloud Account:
+   https://grafana.com/products/cloud/
+3. Create a new connection to monitor the K8s cluster and follow the instructions.
+   This would install and connect Grafana and Prometheus to your cluster.
