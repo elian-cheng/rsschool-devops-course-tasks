@@ -4,7 +4,7 @@ resource "aws_instance" "K8S_K3S_master" {
   subnet_id         = aws_subnet.K8S_private_subnet[0].id # Use the first private subnet
   availability_zone = element(data.aws_availability_zones.available.names, 0)
 
-  key_name               = k8s-cluster
+  key_name               = "k8s-cluster"
   vpc_security_group_ids = [aws_security_group.K8S_private_sg.id]
 
   user_data = <<-EOF

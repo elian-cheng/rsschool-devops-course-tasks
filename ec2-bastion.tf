@@ -16,7 +16,7 @@ resource "aws_instance" "K8S_bastion_host" {
 
   associate_public_ip_address = true
 
-  key_name               = k8s-cluster
+  key_name               = "k8s-cluster"
   vpc_security_group_ids = [aws_security_group.K8S_public_sg.id]
 
   user_data = <<-EOF
