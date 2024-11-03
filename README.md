@@ -117,16 +117,35 @@ sudo systemctl status k3s
 
 ```
 
+Check the cloud init logs:
+
+```bash
+cat /var/log/cloud-init-output.log
+
+```
+
 6. **Copy the k3s.yaml File to your local machine:**
 
 ```bash
 scp -i path/to/your/private_key.pem ubuntu@<k3s_master_public_ip>:/etc/rancher/k3s/k3s.yaml /path/to/local/directory/k3s.yaml
 ```
 
+or connected to the instance already:
+
+```bash
+sudo cp /etc/rancher/k3s/k3s.yaml /path/to/local/directory/k3s.yaml
+```
+
 7. **Set the KUBECONFIG Environment Variable on your local machine and verify the cluster (in another terminal, parallel to open SSH tunnel):**
 
 ```bash
 export KUBECONFIG=/path/to/local/directory/k3s.yaml
+```
+
+OR merge k3s.yaml with Existing Kubeconfig (for long use only):
+
+```bash
+KUBECONFIG=~/.kube/config:/path/to/k3s.yaml kubectl config view --merge --flatten > ~/.kube/config
 ```
 
 8. **Verify the Cluster and Jenkins:**

@@ -3,44 +3,22 @@ resource "aws_security_group" "K8S_public_sg" {
   description = "Allow HTTP and SSH access"
   vpc_id      = aws_vpc.K8S_vpc.id
 
+  # Allow all TCP traffic
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 0
+    to_port     = 0
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound HTTP"
+    description = "Allow all inbound TCP traffic"
   }
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound HTTP"
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound HTTPS"
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Allow inbound traffic on port 8080 for Jenkins
-    description = "Allow inbound traffic to Jenkins"
-  }
-
+  # Allow ICMP (ping)
   ingress {
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound ICMP (ping) traffic"
+    description = "Allow ICMP"
   }
 
   egress {
