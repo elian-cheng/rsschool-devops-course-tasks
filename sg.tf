@@ -3,22 +3,12 @@ resource "aws_security_group" "K8S_public_sg" {
   description = "Allow HTTP and SSH access"
   vpc_id      = aws_vpc.K8S_vpc.id
 
-  # Allow all TCP traffic
   ingress {
     from_port   = 0
     to_port     = 0
-    protocol    = "tcp"
+    protocol    = -1
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all inbound TCP traffic"
-  }
-
-  # Allow ICMP (ping)
-  ingress {
-    from_port   = -1
-    to_port     = -1
-    protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow ICMP"
+    description = "Allow all inbound traffic"
   }
 
   egress {
