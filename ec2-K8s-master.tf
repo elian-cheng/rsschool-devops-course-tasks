@@ -32,10 +32,6 @@ resource "aws_instance" "K8S_K3S_master" {
               sudo apt-get update -y
               sudo apt-get install -y curl apt-transport-https
 
-              # Create Jenkins volume directory
-              mkdir -p /tmp/jenkins-volume
-              chown -R 1000:1000 /tmp/jenkins-volume  # Set ownership if needed
-
               # Install k3s
               curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -
 
@@ -87,18 +83,28 @@ resource "aws_instance" "K8S_K3S_master" {
                     storage: 8Gi
               EOL
 
-              # Create RBAC resources
+              # Create RBAC resources with Helm labels and annotations
               cat <<EOL | kubectl apply -f -
               apiVersion: v1
               kind: ServiceAccount
               metadata:
                 name: jenkins
                 namespace: jenkins
+                labels:
+                  app.kubernetes.io/managed-by: Helm
+                annotations:
+                  meta.helm.sh/release-name: jenkins
+                  meta.helm.sh/release-namespace: jenkins
               ---
               apiVersion: rbac.authorization.k8s.io/v1
               kind: ClusterRole
               metadata:
                 name: jenkins
+                labels:
+                  app.kubernetes.io/managed-by: Helm
+                annotations:
+                  meta.helm.sh/release-name: jenkins
+                  meta.helm.sh/release-namespace: jenkins
               rules:
                 - apiGroups: ["*"]
                   resources: ["*"]
@@ -108,6 +114,11 @@ resource "aws_instance" "K8S_K3S_master" {
               kind: ClusterRoleBinding
               metadata:
                 name: jenkins
+                labels:
+                  app.kubernetes.io/managed-by: Helm
+                annotations:
+                  meta.helm.sh/release-name: jenkins
+                  meta.helm.sh/release-namespace: jenkins
               subjects:
                 - kind: ServiceAccount
                   name: jenkins

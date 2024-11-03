@@ -148,6 +148,12 @@ OR merge k3s.yaml with Existing Kubeconfig (for long use only):
 KUBECONFIG=~/.kube/config:/path/to/k3s.yaml kubectl config view --merge --flatten > ~/.kube/config
 ```
 
+access from the local ps via SSH tunnel:
+
+```bash
+ssh -i /path/to/your/key.pem -L 6443:localhost:6443 ubuntu@<EC2_PUBLIC_IP>
+```
+
 8. **Verify the Cluster and Jenkins:**
 
 ```bash
