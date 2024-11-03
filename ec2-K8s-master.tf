@@ -32,6 +32,10 @@ resource "aws_instance" "K8S_K3S_master" {
               sudo apt-get update -y
               sudo apt-get install -y curl apt-transport-https
 
+              # Create Jenkins volume directory
+              mkdir -p /tmp/jenkins-volume
+              chown -R 1000:1000 /tmp/jenkins-volume  # Set ownership if needed
+
               # Install k3s
               curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -
 
