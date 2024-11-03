@@ -99,64 +99,111 @@ To verify that your GitHub Actions workflow works:
    - Ensure that the terraform plan job runs successfully and outputs the planned actions correctly.
    - If you're pushing to the main branch, check that terraform apply executes without errors.
 
-4. SSH into the Bastion Host:
-   ssh -i k8s-cluster.pem -L 6443:10.0.3.63:6443 ubuntu@13.60.79.204
+4. **Get the Public IP of Your K3s Master Node**:
+
+   - Note the public IP address of your K3s master node. You can find this in your AWS EC2 dashboard under instances.
+
+5. **SSH into the K3s Master Node**:
 
 ```bash
-ssh -i path/to/your/private_key.pem ubuntu@<bastion_host_public_ip>
+ssh -i path/to/your/private_key.pem ubuntu@<k3s_master_public_ip>
+
 ```
 
-5. SSH into the K3s Master Node from the Bastion Host:
+Verify the K3s Installation:
 
 ```bash
-ssh -i /home/ubuntu/.ssh/k8s-cluster.pem ubuntu@<k3s_master_private_ip>
+sudo systemctl status k3s
+
 ```
 
-6. Copy the k3s.yaml File to your local machine:
-
-Copy the file to the Bastion Host:
+6. **Copy the k3s.yaml File to your local machine:**
 
 ```bash
-scp /etc/rancher/k3s/k3s.yaml ubuntu@<bastion_host_private_ip>:/home/ubuntu/k3s.yaml
+scp -i path/to/your/private_key.pem ubuntu@<k3s_master_public_ip>:/etc/rancher/k3s/k3s.yaml /path/to/local/directory/k3s.yaml
 ```
 
-Copy the k3s.yaml File to Your Local Machine:
-
-```bash
-scp -i path/to/your/private_key.pem ubuntu@<bastion_host_public_ip>:/home/ubuntu/k3s.yaml /path/to/local/directory/k3s.yaml
-```
-
-7. Setup the SSH tunnel to connect to the K8s master node private instance via Bastion Host from your local machine:
-
-```bash
-ssh -i path/to/your/private_key.pem -L 6443:<k3s-master-private-ip>:6443 ubuntu@<bastion-host-public-ip>
-```
-
-8. Set the KUBECONFIG Environment Variable on your local machine and verify the cluster (in another terminal, parallel to open SSH tunnel):
+7. **Set the KUBECONFIG Environment Variable on your local machine and verify the cluster (in another terminal, parallel to open SSH tunnel):**
 
 ```bash
 export KUBECONFIG=/path/to/local/directory/k3s.yaml
 ```
 
-Verify the Cluster:
+8. **Verify the Cluster and Jenkins:**
 
 ```bash
 kubectl get nodes
 ```
 
-9. Deploy the Simple Workload:
-
 ```bash
-kubectl apply -f https://k8s.io/examples/pods/simple-pod.yaml
+kubectl get pods -n jenkins
 ```
 
-## Monitoring
+9. **Access Jenkins:**
+   Since we have set the service type to LoadBalancer, we should be able to access Jenkins via the public IP of our master node.
+   Retrieve the service details to get the external IP:
 
-I use Cloud Grafana (with Prometheus) for the monitoring. Follow these steps:
+```bash
+kubectl get svc -n jenkins
+```
 
-1. Make sure Helm is installed and properly configured on your machine.
-   https://helm.sh/docs/intro/install/
-2. Create a Grafana Cloud Account:
-   https://grafana.com/products/cloud/
-3. Create a new connection to monitor the K8s cluster and follow the instructions.
-   This would install and connect Grafana and Prometheus to your cluster.
+Open a web browser and navigate to http://<master_node_public_ip>:8080. You should see the Jenkins setup wizard.
+
+10. **Unlock Jenkins:**
+    You’ll need the initial admin password to unlock Jenkins. Retrieve it by running:
+
+```bash
+    kubectl exec -n jenkins <jenkins-pod-name> -- cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Copy the password and paste it into the Jenkins setup wizard to unlock Jenkins.
+
+11. **Create a Freestyle Project:**
+    Follow the setup wizard to install recommended plugins.
+    Create a new Freestyle project:
+
+- Name it something like "HelloWorld".
+- In the build section, add an "Execute shell" build step with the following command:
+
+```bash
+echo "Hello world"
+```
+
+- Save the project and run it.
+
+12. **Verify the Build Output:**
+    After running the job, check the console output to ensure it shows "Hello world".
+
+13. **Check Persistent Volume Configuration:**
+    Ensure that the persistent volume (PV) and persistent volume claim (PVC) were created successfully:
+
+```bash
+kubectl get pv
+kubectl get pvc -n jenkins
+```
+
+14. **Verify your Helm installation by deploying and removing the Nginx chart from Bitnami:**
+    First, install the Nginx chart using Helm. You can run the following command to deploy the Nginx server:
+
+```bash
+helm install my-nginx oci://registry-1.docker.io/bitnamicharts/nginx
+```
+
+Verify the Deployment:
+
+```bash
+kubectl get pods
+```
+
+Remove the Nginx Chart:
+
+```bash
+helm uninstall my-nginx
+```
+
+Check that the Nginx resources have been removed:
+
+```bash
+kubectl get pods
+kubectl get svc
+```

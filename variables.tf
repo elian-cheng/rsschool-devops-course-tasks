@@ -52,3 +52,20 @@ variable "private_key" {
   sensitive   = true # Mark as sensitive to avoid showing the value in logs
 }
 
+variable "k8s_master_instance_type" {
+  description = "instance type for k8s node"
+  default     = "t3.small"
+}
+
+variable "k8s_master_node_disk" {
+  description = "disk type for k8s node"
+  default = {
+    size = 30
+    type = "gp3"
+  }
+}
+
+variable "access_key_name" {
+  description = "The name of the SSH key pair to use for the instances"
+  default     = "k8s-cluster"
+}
