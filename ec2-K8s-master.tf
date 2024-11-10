@@ -7,7 +7,6 @@ data "aws_ami" "ubuntu_ami" {
     values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 }
-
 resource "aws_instance" "K8S_K3S_master" {
   ami               = data.aws_ami.ubuntu_ami.id
   instance_type     = var.k8s_master_instance_type
@@ -43,8 +42,9 @@ resource "aws_instance" "K8S_K3S_master" {
               done
 
               # Setup kubeconfig
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
               mkdir -p ~/.kube
-              sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+              sudo chmod 600 /etc/rancher/k3s/k3s.yaml
               sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
               sudo chown $(id -u):$(id -g) ~/.kube/config
 
@@ -62,10 +62,14 @@ resource "aws_instance" "K8S_K3S_master" {
 
               # Clone the WordPress repository
               mkdir -p /home/ubuntu/helm
-              git clone https://github.com/elian-cheng/rsschool-devops-task5-wordpress /home/ubuntu/helm
+              sudo chown ubuntu:ubuntu /home/ubuntu/helm
+              git clone https://github.com/elian-cheng/rsschool-devops-task5-wordpress.git /home/ubuntu/helm
+
+              # Wait for the repository to be cloned
+              sleep 10
 
               # Install WordPress using Helm
-              helm install my-wordpress /home/ubuntu/helm/wordpress --set wordpress.service.nodePort=32000
+              helm install elian-wordpress /home/ubuntu/helm/wordpress --set wordpress.service.nodePort=32000
 
               # Ensure the services are running
               kubectl get pods -A
