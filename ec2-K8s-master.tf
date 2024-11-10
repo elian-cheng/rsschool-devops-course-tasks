@@ -28,11 +28,12 @@ resource "aws_instance" "K8S_K3S_master" {
 
   user_data = <<-EOF
               #!/bin/bash
+              set -e
               hostnamectl set-hostname "master-node"
               sudo apt-get update -y
-              sudo apt-get install -y curl apt-transport-https
+              sudo apt-get install -y curl apt-transport-https git
 
-              # Install k3s
+              # Install k3s with public IP in TLS SAN
               curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -
 
               # Wait for k3s to be ready
@@ -53,115 +54,21 @@ resource "aws_instance" "K8S_K3S_master" {
                 sleep 10
               done
 
-              # Create Jenkins namespace and resources
-              kubectl create namespace jenkins
-
-              # Create PV and PVC
-              cat <<EOL | kubectl apply -f -
-              apiVersion: v1
-              kind: PersistentVolume
-              metadata:
-                name: jenkins-pv
-              spec:
-                capacity:
-                  storage: 8Gi
-                accessModes:
-                  - ReadWriteOnce
-                hostPath:
-                  path: "/tmp/jenkins-volume"
-              ---
-              apiVersion: v1
-              kind: PersistentVolumeClaim
-              metadata:
-                name: jenkins-pvc
-                namespace: jenkins
-              spec:
-                accessModes:
-                  - ReadWriteOnce
-                resources:
-                  requests:
-                    storage: 8Gi
-              EOL
-
-              # Create RBAC resources with Helm labels and annotations
-              cat <<EOL | kubectl apply -f -
-              apiVersion: v1
-              kind: ServiceAccount
-              metadata:
-                name: jenkins
-                namespace: jenkins
-                labels:
-                  app.kubernetes.io/managed-by: Helm
-                annotations:
-                  meta.helm.sh/release-name: jenkins
-                  meta.helm.sh/release-namespace: jenkins
-              ---
-              apiVersion: rbac.authorization.k8s.io/v1
-              kind: ClusterRole
-              metadata:
-                name: jenkins
-                labels:
-                  app.kubernetes.io/managed-by: Helm
-                annotations:
-                  meta.helm.sh/release-name: jenkins
-                  meta.helm.sh/release-namespace: jenkins
-              rules:
-                - apiGroups: ["*"]
-                  resources: ["*"]
-                  verbs: ["*"]
-              ---
-              apiVersion: rbac.authorization.k8s.io/v1
-              kind: ClusterRoleBinding
-              metadata:
-                name: jenkins
-                labels:
-                  app.kubernetes.io/managed-by: Helm
-                annotations:
-                  meta.helm.sh/release-name: jenkins
-                  meta.helm.sh/release-namespace: jenkins
-              subjects:
-                - kind: ServiceAccount
-                  name: jenkins
-                  namespace: jenkins
-              roleRef:
-                apiGroup: rbac.authorization.k8s.io
-                kind: ClusterRole
-                name: jenkins
-              EOL
-
               # Install Helm
               curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
               sudo apt-get update -y
               sudo apt-get install -y helm
 
-              # Setup Jenkins volume
-              mkdir -p /tmp/jenkins-volume
-              chown -R 1000:1000 /tmp/jenkins-volume
+              # Clone the WordPress repository
+              mkdir -p /home/ubuntu/helm
+              git clone https://github.com/elian-cheng/rsschool-devops-task5-wordpress /home/ubuntu/helm
 
-              # Add Jenkins repo and update
-              helm repo add jenkins https://charts.jenkins.io
-              helm repo update
+              # Install WordPress using Helm
+              helm install my-wordpress /home/ubuntu/helm/wordpress --set wordpress.service.nodePort=32000
 
-              # Wait for jenkins namespace to be ready
-              while ! kubectl get namespace jenkins; do
-                echo "Waiting for jenkins namespace..."
-                sleep 5
-              done
-
-              # Install Jenkins
-              helm install jenkins jenkins/jenkins --namespace jenkins \
-                --set controller.serviceType=LoadBalancer \
-                --set persistence.enabled=true \
-                --set persistence.size=8Gi \
-                --set persistence.existingClaim=jenkins-pvc \
-                --set 'controller.installPlugins={cloudbees-credentials,git,workflow-aggregator,jacoco,configuration-as-code}'
-
-              # Wait for Jenkins pod to be ready
-              while [[ $(kubectl get pods -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null) != "true" ]]; do
-                echo "Waiting for Jenkins pod to be ready..."
-                sleep 10
-              done
+              # Ensure the services are running
+              kubectl get pods -A
               EOF
 
   tags = {

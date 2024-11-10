@@ -148,87 +148,27 @@ OR merge k3s.yaml with Existing Kubeconfig (for long use only):
 KUBECONFIG=~/.kube/config:/path/to/k3s.yaml kubectl config view --merge --flatten > ~/.kube/config
 ```
 
-access from the local ps via SSH tunnel:
+access from the local pc via SSH tunnel:
 
 ```bash
 ssh -i /path/to/your/key.pem -L 6443:localhost:6443 ubuntu@<EC2_PUBLIC_IP>
 ```
 
-8. **Verify the Cluster and Jenkins:**
+8. **Check the Status of the WordPress Application:**
 
 ```bash
-kubectl get nodes
+kubectl get pods -A
 ```
 
 ```bash
-kubectl get pods -n jenkins
+kubectl get svc -A
 ```
 
-9. **Access Jenkins:**
-   Since we have set the service type to LoadBalancer, we should be able to access Jenkins via the public IP of our master node.
-   Retrieve the service details to get the external IP:
+9. **Access the WordPress Application:**
+   Find the external IP or node port of the WordPress service to access the application. If you set the wordpress.service.nodePort to 32000, you can access the application using the public IP of your EC2 instance and the specified node port:
 
 ```bash
-kubectl get svc -n jenkins
+echo "http://<ec2-instance-public-ip>:32000"
 ```
 
-Open a web browser and navigate to http://<master_node_public_ip>:8080. You should see the Jenkins setup wizard.
-
-10. **Unlock Jenkins:**
-    You’ll need the initial admin password to unlock Jenkins. Retrieve it by running:
-
-```bash
-    kubectl exec -n jenkins <jenkins-pod-name> -- cat /var/jenkins_home/secrets/initialAdminPassword
-```
-
-Copy the password and paste it into the Jenkins setup wizard to unlock Jenkins.
-
-11. **Create a Freestyle Project:**
-    Follow the setup wizard to install recommended plugins.
-    Create a new Freestyle project:
-
-- Name it something like "HelloWorld".
-- In the build section, add an "Execute shell" build step with the following command:
-
-```bash
-echo "Hello world"
-```
-
-- Save the project and run it.
-
-12. **Verify the Build Output:**
-    After running the job, check the console output to ensure it shows "Hello world".
-
-13. **Check Persistent Volume Configuration:**
-    Ensure that the persistent volume (PV) and persistent volume claim (PVC) were created successfully:
-
-```bash
-kubectl get pv
-kubectl get pvc -n jenkins
-```
-
-14. **Verify your Helm installation by deploying and removing the Nginx chart from Bitnami:**
-    First, install the Nginx chart using Helm. You can run the following command to deploy the Nginx server:
-
-```bash
-helm install my-nginx oci://registry-1.docker.io/bitnamicharts/nginx
-```
-
-Verify the Deployment:
-
-```bash
-kubectl get pods
-```
-
-Remove the Nginx Chart:
-
-```bash
-helm uninstall my-nginx
-```
-
-Check that the Nginx resources have been removed:
-
-```bash
-kubectl get pods
-kubectl get svc
-```
+Open a web browser and navigate to http://<ec2-instance-public-ip>:32000. You should see the Wordpress setup wizard.
