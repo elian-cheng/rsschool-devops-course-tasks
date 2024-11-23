@@ -95,19 +95,11 @@ pipeline {
       }
     }
 
-    stage('Fetch Public IP') {
-      steps {
-        script {
-          env.PUBLIC_IP = sh(script: "curl -s http://169.254.169.254/latest/meta-data/public-ipv4", returnStdout: true).trim()
-          env.SONAR_HOST_URL = "http://${env.PUBLIC_IP}:9000"
-        }
-      }
-    }
-
     stage('SonarQube Analysis') {
       environment {
         SONAR_PROJECT_KEY = credentials('sonar-project-key')
         SONAR_LOGIN = credentials('sonar-login-token')
+        SONAR_HOST_URL = credentials('sonar-host-url')
       }
       steps {
         container('sonarscanner') {
