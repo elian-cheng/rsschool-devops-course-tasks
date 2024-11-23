@@ -106,7 +106,7 @@ helm install my-sonarqube sonarqube/sonarqube \
   --set service.type=LoadBalancer
 
 # Wait for SonarQube to be ready
-while [[ $(kubectl get pod -n sonarqube -l app=sonarqube-sonarqube -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null) != "true" ]]; do
+while [[ $(kubectl get pod my-sonarqube-sonarqube-0 -n sonarqube -o jsonpath='{.status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
   echo "Waiting for SonarQube pod to be ready..."
   sleep 10
 done
