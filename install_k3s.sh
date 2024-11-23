@@ -169,7 +169,10 @@ helm install my-jenkins jenkins/jenkins \
   --namespace jenkins \
   --set persistence.enabled=true \
   --set persistence.existingClaim=jenkins-pvc \
-  --set controller.debug=true \
+  --set controller.resources.requests.memory=1Gi \
+  --set controller.resources.requests.cpu=500m \
+  --set controller.resources.limits.memory=2Gi \
+  --set controller.resources.limits.cpu=1 \
   --set service.type=LoadBalancer \
   --set controller.containerSecurityContext.readOnlyRootFilesystem=false
 

@@ -50,7 +50,7 @@ pipeline {
     ECR_REPOSITORY = 'goals-app'
     IMAGE_TAG = 'latest'
     SONAR_PROJECT_KEY = "Goals-App-Check"
-    SONAR_LOGIN = "squ_f895802a1dc2ee20bf6c1a243850379cbd175c6f"
+    SONAR_LOGIN = "sqp_1c229ea811bd6e48b5b08b84f17052332323ea86"
     SONAR_HOST_URL = "http://51.20.106.145:9000"
   }
   stages {
