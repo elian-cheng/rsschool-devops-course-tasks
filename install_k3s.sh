@@ -81,6 +81,23 @@ kubectl create namespace sonarqube || echo "Namespace sonarqube already exists."
 helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
 helm repo update
 
+# Create values.yaml for SonarQube
+cat <<EOF > values.yaml
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 10Gi
+
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1"
+EOF
+
+
 # Install SonarQube using Helm
 helm install my-sonarqube sonarqube/sonarqube \
   --namespace sonarqube \
