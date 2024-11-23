@@ -174,7 +174,7 @@ helm install my-jenkins jenkins/jenkins \
   --set controller.containerSecurityContext.readOnlyRootFilesystem=false
 
 # Wait for Jenkins to be ready
-while [[ $(kubectl get pod -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null) != "true" ]]; do
+while [[ $(kubectl get pod -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 2 ]]; do
   echo "Waiting for Jenkins pod to be ready..."
   sleep 10
 done
@@ -182,8 +182,8 @@ done
 # Install SonarQube plugin in Jenkins
 kubectl exec -n jenkins svc/my-jenkins -c jenkins -- /bin/bash -c "jenkins-plugin-cli --plugins sonar"
 
-# Restart Jenkins to apply the plugin
-kubectl exec -n jenkins svc/my-jenkins -c jenkins -- /bin/bash -c "jenkins-plugin-cli --restart"
+# Restart Jenkins pod to apply the plugin
+kubectl rollout restart statefulset my-jenkins -n jenkins
 
 # Get public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)

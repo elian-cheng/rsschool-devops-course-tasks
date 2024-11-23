@@ -49,6 +49,9 @@ pipeline {
     AWS_REGION = 'eu-north-1'
     ECR_REPOSITORY = 'goals-app'
     IMAGE_TAG = 'latest'
+    SONAR_PROJECT_KEY = "Goals-App-Check"
+    SONAR_LOGIN = "${SONAR_LOGIN}"
+    SONAR_HOST_URL = "http://51.20.106.145:9000"
   }
   stages {
     stage('Prepare') {
@@ -96,21 +99,13 @@ pipeline {
     }
 
     stage('SonarQube Analysis') {
-      environment {
-        SONAR_PROJECT_KEY = credentials('sonar-project-key')
-        SONAR_LOGIN = credentials('sonar-login-token')
-        SONAR_HOST_URL = credentials('sonar-host-url')
-      }
       steps {
         container('sonarscanner') {
           script {
-            sh '''
-              sonar-scanner \
-                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                -Dsonar.sources=. \
-                -Dsonar.host.url=${SONAR_HOST_URL} \
-                -Dsonar.login=${SONAR_LOGIN}
-            '''
+            def scannerHome = tool 'MySonar'
+            withSonarQubeEnv('SonarQube') {
+              sh "${scannerHome}/bin/sonar-scanner"
+            }
           }
         }
       }
