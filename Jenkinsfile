@@ -50,7 +50,7 @@ pipeline {
     ECR_REPOSITORY = 'goals-app'
     IMAGE_TAG = 'latest'
     SONAR_PROJECT_KEY = "Goals-App-Check"
-    SONAR_LOGIN = "${SONAR_LOGIN}"
+    SONAR_LOGIN = "squ_f895802a1dc2ee20bf6c1a243850379cbd175c6f"
     SONAR_HOST_URL = "http://51.20.106.145:9000"
   }
   stages {
@@ -102,10 +102,13 @@ pipeline {
       steps {
         container('sonarscanner') {
           script {
-            def scannerHome = tool 'MySonar'
-            withSonarQubeEnv('SonarQube') {
-              sh "${scannerHome}/bin/sonar-scanner"
-            }
+            sh '''
+              sonar-scanner \
+                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=${SONAR_HOST_URL} \
+                -Dsonar.login=${SONAR_LOGIN}
+            '''
           }
         }
       }
