@@ -1,0 +1,7 @@
+.env
+.idea/
+.terraform/
+.terraform.lock.hcl
+*.pem
+k3s.yaml
+goals-app/node_modules/
