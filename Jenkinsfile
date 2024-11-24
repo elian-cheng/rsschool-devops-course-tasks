@@ -35,6 +35,9 @@ pipeline {
       retries 2
     }
   }
+    parameters {
+    booleanParam(name: 'SHOULD_PUSH_TO_ECR', defaultValue: false, description: 'Set to true in build with params to push Docker image to ECR')
+  }
   triggers {
     GenericTrigger(
       causeString: 'Triggered by GitHub Push',
@@ -47,7 +50,8 @@ pipeline {
   environment {
     AWS_ACCOUNT_ID = '656732674839'
     AWS_REGION = 'eu-north-1'
-    ECR_REPOSITORY = 'goals-app'
+    AWS_CREDENTIALS = 'aws-credentials'
+    REPO_NAME = 'goals-app'
     IMAGE_TAG = 'latest'
     SONAR_PROJECT_KEY = "Goals-App-Check"
     SONAR_LOGIN = "sqp_1c229ea811bd6e48b5b08b84f17052332323ea86"
@@ -102,6 +106,7 @@ pipeline {
       steps {
         container('sonarscanner') {
           script {
+          echo "Running SonarQube analysis..."
             sh '''
               sonar-scanner \
                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -144,19 +149,57 @@ pipeline {
       }
     }
 
-    stage('Publish to ECR') {
+    stage('Push Docker image to ECR') {
+      when { expression { params.SHOULD_PUSH_TO_ECR == true } }
       steps {
         container('docker') {
           script {
-            echo "Publishing Docker image to ECR..."
-            sh '''
-              aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 656732674839.dkr.ecr.eu-north-1.amazonaws.com
-              docker tag goals-app:latest 656732674839.dkr.ecr.eu-north-1.amazonaws.com/goals-app:latest
-              docker push 656732674839.dkr.ecr.eu-north-1.amazonaws.com/goals-app:latest
-            '''
+            echo "Pushing Docker image to ECR..."
+            withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_REGION}") {
+              sh '''
+                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}
+                docker tag ${REPO_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${IMAGE_TAG}
+                docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${IMAGE_TAG}
+              '''
+            }
           }
         }
       }
+    }
+
+    stage('Create ECR Secret') {
+        steps {
+            container('docker') {
+               script {
+                echo "Creating ECR secret..."
+                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_REGION}") {
+                  sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}
+                    kubectl create secret generic ecr-secret --namespace=jenkins --from-file=.dockerconfigjson=\$HOME/.docker/config.json --dry-run=client -o json | kubectl apply -f -
+                  '''
+                }
+              }
+            }
+        }
+    }
+
+    stage('Deploy to Kubernetes with Helm') {
+        when { expression { params.SHOULD_PUSH_TO_ECR == true } }
+        steps {
+            container('helm') {
+              script {
+                echo "Deploying to Kubernetes with Helm..."
+                withAWS(credentials: "${AWS_CREDENTIALS}", region: "${AWS_REGION}") {
+                  sh '''
+                    helm upgrade --install ${REPO_NAME} ./helm/${REPO_NAME} \\
+                    --set image.repository=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME} \\
+                    --set image.tag=${IMAGE_TAG} \\
+                    -f ./helm/${REPO_NAME}/values.yaml \\
+                    --namespace default                  '''
+                }
+              }
+            }
+        }
     }
   }
   post {

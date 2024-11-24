@@ -64,6 +64,7 @@ The Terraform configurations use the following variables:
 - **ec2-bastion.tf**: Bastion host definition.
 - **ec2-K8s-master.tf**: Private instance definition (in private subnet) for K8s master.
 - **outputs.tf**: Resources outputs.
+- **ecr.tf**: ECR role && policy definition
 
 ## Workflow Overview
 
@@ -154,7 +155,7 @@ access from the local pc via SSH tunnel:
 ssh -i /path/to/your/key.pem -L 6443:localhost:6443 ubuntu@<EC2_PUBLIC_IP>
 ```
 
-8. **Check the Status of the WordPress Application:**
+8. **Check the Status of the pods & services:**
 
 ```bash
 kubectl get pods -A
@@ -164,11 +165,58 @@ kubectl get pods -A
 kubectl get svc -A
 ```
 
-9. **Access the WordPress Application:**
-   Find the external IP or node port of the WordPress service to access the application. If you set the wordpress.service.nodePort to 32000, you can access the application using the public IP of your EC2 instance and the specified node port:
+9. **Login to SonarQube and config:**
+   You can access the SonarQube using the public IP of your EC2 instance and the specified load balancer port 9000 (default for SonarQube):
 
 ```bash
-echo "http://<ec2-instance-public-ip>:32000"
+echo "http://<ec2-instance-public-ip>:9000"
 ```
 
-Open a web browser and navigate to http://<ec2-instance-public-ip>:32000. You should see the Wordpress setup wizard.
+Open a web browser and navigate to http://<ec2-instance-public-ip>:9000. You should see the login form. Default login credentials are: login - admin, pw - admin.
+
+After login you need to create a project and generate a project token, which you need to provide in your Jenkinsfile for the pipeline.
+
+9. **Login to Jenkins and config:**
+   You can access the Jenkins using the public IP of your EC2 instance and the specified load balancer port 8080 (default for Jenkins):
+
+```bash
+echo "http://<ec2-instance-public-ip>:9000"
+```
+
+Retrieve the Jenkins admin password:
+
+```bash
+kubectl exec --namespace jenkins -it svc/my-jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password
+```
+
+Or get it from EC2 user_data script output:
+
+```bash
+cat /var/log/cloud-init-output.log
+
+```
+
+Open a web browser and navigate to http://<ec2-instance-public-ip>:9000. You should see the login form. Default login credentials are: login - admin, pw - retrieved from the jenkins file.
+
+After login you need to install plugins: Email Extension Plugin (for notifications), SonarQube Scanner for Jenkins, Amazon EC2 plugin (to get custom AWS credentials), Generic Webhook Trigger plugin (for the trigger on pushes to the other repository with app and Dockerfile).
+
+Then you need to create credentials for the email access (also a google app password in google console, if needed) and aws credentials for the pipeline. Make sure that AWS credentials for this user (role) in IAM include permission to access EC2ContainerRegistry.
+
+For the detailed screenshots check [PR](https://github.com/elian-cheng/rsschool-devops-course-tasks/pull/9)
+
+10. **Setup the webhook trigger**
+    In github settings in other repo (docker application):
+    Settings > Webhooks > Add webhook > Payload URL ↓
+
+```bash
+http://<ec2-instance-public-ip>:8080/generic-webhook-trigger/invoke?<token-name>
+```
+
+11. **Jenkins job config**
+    Create a new pipeline job, and config build triggers to use generic webhook trigger, add a token name
+
+12. **Start the Jenkins job**:
+    You can start the job manually or it would start automatically on push to the app repo.
+    By default SHOULD_PUSH_TO_ECR is set to false in Jenkins file, so you can manually override it
+    by using "Build with Parameters" option in Jenkins and set it to true, so it would also
+    push the image to ECR and deploy to the Kubernetes cluster with Helm.

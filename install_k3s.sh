@@ -177,7 +177,7 @@ helm install my-jenkins jenkins/jenkins \
   --set controller.containerSecurityContext.readOnlyRootFilesystem=false
 
 # Wait for Jenkins to be ready
-while [[ $(kubectl get pod -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 2 ]]; do
+while [[ $(kubectl get pod my-jenkins-0 -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
   echo "Waiting for Jenkins pod to be ready..."
   sleep 10
 done
