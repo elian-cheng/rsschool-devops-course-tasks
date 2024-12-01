@@ -105,7 +105,7 @@ kubectl get svc -n monitoring
 # Get public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "Public IP: $PUBLIC_IP"
-echo "Prometheus is accessible at http://$PUBLIC_IP:9090"
+echo "Prometheus is accessible at http://$PUBLIC_IP:80"
 
 # Ensure the services are running
 kubectl get pods -A

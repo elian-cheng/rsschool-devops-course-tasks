@@ -177,13 +177,13 @@ kubectl get svc -A
 ```
 
 9. **Access Prometheus:**
-   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 9090 (default for Prometheus):
+   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 80 (default for Prometheus):
 
 ```bash
-echo "http://<ec2-instance-public-ip>:9090"
+echo "http://<ec2-instance-public-ip>:80"
 ```
 
-Open a web browser and navigate to http://<ec2-instance-public-ip>:9090.
+Open a web browser and navigate to http://<ec2-instance-public-ip>:80.
 
 9. **Check Prometheus dashboard and data collection:**
    Ensure Prometheus is collecting essential cluster-specific metrics, such as nodes' memory usage. Check the collected metrics via the Prometheus web interface.
