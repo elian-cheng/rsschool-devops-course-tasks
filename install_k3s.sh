@@ -34,14 +34,6 @@ sudo apt-get update -y
 install_package "curl"
 install_package "apt-transport-https"
 install_package "git"
-install_package "docker.io"
-
-# Start and enable Docker
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -aG docker ubuntu
-docker --version || { echo "Docker installation failed."; exit 1; }
-echo "Docker installed successfully."
 
 # Install k3s with public IP in TLS SAN
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -
@@ -74,134 +66,46 @@ done
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 command -v helm &>/dev/null || { echo "Helm installation failed."; exit 1; }
 
-# Create SonarQube namespace
-kubectl create namespace sonarqube || echo "Namespace sonarqube already exists."
-
-# Add SonarQube Helm repository and update
-helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
+# Add Bitnami Helm repository and update
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-# Create values.yaml for SonarQube
-cat <<EOF > values.yaml
-persistence:
-  enabled: true
-  storageClass: local-path
-  size: 10Gi
+# Install Prometheus using Bitnami Helm chart
+echo "Installing Prometheus using Bitnami Helm chart..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
 
-resources:
-  requests:
-    memory: "1Gi"
-    cpu: "500m"
-  limits:
-    memory: "2Gi"
-    cpu: "1"
-EOF
+kubectl create namespace monitoring || echo "Namespace monitoring already exists."
 
+helm install prometheus prometheus-community/prometheus \
+  --namespace monitoring \
+  --set server.service.type=LoadBalancer \
+  --set alertmanager.service.type=LoadBalancer \
+  --set pushgateway.service.type=LoadBalancer
 
-# Install SonarQube using Helm
-helm install my-sonarqube sonarqube/sonarqube \
-  --namespace sonarqube \
-  --set persistence.enabled=true \
-  --set persistence.storageClass=local-path \
-  --set service.type=LoadBalancer
-
-# Wait for SonarQube to be ready
-while [[ $(kubectl get pod my-sonarqube-sonarqube-0 -n sonarqube -o jsonpath='{.status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
-  echo "Waiting for SonarQube pod to be ready..."
+echo "Waiting for Prometheus to be ready..."
+while [[ $(kubectl get pods -n monitoring -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
+  echo "Waiting for Prometheus pod to be ready..."
   sleep 10
 done
 
-# Expose SonarQube service
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: sonarqube
-  namespace: sonarqube
-spec:
-  type: LoadBalancer
-  ports:
-    - port: 9000
-      targetPort: 9000
-  selector:
-    app: sonarqube-sonarqube
-EOF
+# Install Node Exporter
+echo "Installing Node Exporter..."
+helm install node-exporter prometheus-community/prometheus-node-exporter --namespace monitoring
 
-# Create Jenkins namespace
-kubectl create namespace jenkins || echo "Namespace jenkins already exists."
+# Install Kube State Metrics
+echo "Installing Kube State Metrics..."
+helm install kube-state-metrics prometheus-community/kube-state-metrics --namespace monitoring
 
-# Check StorageClass and create default if not exists
-kubectl get storageclass &>/dev/null || {
-    echo "No StorageClass found. Setting up a default StorageClass..."
-    cat <<EOF | kubectl apply -f -
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-path
-provisioner: rancher.io/local-path
-volumeBindingMode: WaitForFirstConsumer
-EOF
-}
-
-# Create PersistentVolumeClaim for Jenkins
-echo "Creating PersistentVolumeClaim for Jenkins..."
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: jenkins-pvc
-  namespace: jenkins
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: local-path
-EOF
-
-# Add Jenkins Helm repository and update
-helm repo add jenkins https://charts.jenkins.io
-helm repo update
-
-# Install Jenkins using Helm
-helm install my-jenkins jenkins/jenkins \
-  --namespace jenkins \
-  --set persistence.enabled=true \
-  --set persistence.existingClaim=jenkins-pvc \
-  --set controller.resources.requests.memory=1Gi \
-  --set controller.resources.requests.cpu=500m \
-  --set controller.resources.limits.memory=2Gi \
-  --set controller.resources.limits.cpu=1 \
-  --set service.type=LoadBalancer \
-  --set controller.containerSecurityContext.readOnlyRootFilesystem=false
-
-# Wait for Jenkins to be ready
-while [[ $(kubectl get pod my-jenkins-0 -n jenkins -l app.kubernetes.io/component=jenkins-controller -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
-  echo "Waiting for Jenkins pod to be ready..."
-  sleep 10
-done
-
-# Install SonarQube plugin in Jenkins
-kubectl exec -n jenkins svc/my-jenkins -c jenkins -- /bin/bash -c "jenkins-plugin-cli --plugins sonar"
-
-# Restart Jenkins pod to apply the plugin
-kubectl rollout restart statefulset my-jenkins -n jenkins
+# Verify Prometheus installation
+echo "Verifying Prometheus installation..."
+kubectl get pods -n monitoring
+kubectl get svc -n monitoring
 
 # Get public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "Public IP: $PUBLIC_IP"
-kubectl patch svc my-jenkins -n jenkins -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl patch svc sonarqube -n sonarqube -p '{"spec": {"type": "LoadBalancer"}}'
-
-# Get Jenkins admin password
-JENKINS_PASSWORD=$(kubectl exec -n jenkins svc/my-jenkins -c jenkins -- cat /run/secrets/additional/chart-admin-password)
-[ -n "$JENKINS_PASSWORD" ] && echo "Jenkins admin password: $JENKINS_PASSWORD" || { echo "Failed to retrieve Jenkins admin password."; exit 1; }
-
-echo "Jenkins is accessible at http://$PUBLIC_IP:8080"
-
-# SonarQube URL
-echo "SonarQube is accessible at http://$PUBLIC_IP:9000"
+echo "Prometheus is accessible at http://$PUBLIC_IP:9090"
 
 # Ensure the services are running
 kubectl get pods -A

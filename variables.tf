@@ -54,7 +54,7 @@ variable "private_key" {
 
 variable "k8s_master_instance_type" {
   description = "instance type for k8s node"
-  default     = "t3.large"
+  default     = "t3.medium"
 }
 
 variable "k8s_master_node_disk" {

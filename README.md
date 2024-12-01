@@ -155,6 +155,17 @@ access from the local pc via SSH tunnel:
 ssh -i /path/to/your/key.pem -L 6443:localhost:6443 ubuntu@<EC2_PUBLIC_IP>
 ```
 
+Port forwarding for internal (clusterIP services):
+Expose the port of the service:
+
+````bash
+kubectl port-forward -n default <POD> 9000:9000
+```
+
+```bash
+ssh -i /path/to/your/key.pem -L 9000:localhost:9000 ubuntu@<EC2_PUBLIC_IP>
+````
+
 8. **Check the Status of the pods & services:**
 
 ```bash
@@ -165,58 +176,35 @@ kubectl get pods -A
 kubectl get svc -A
 ```
 
-9. **Login to SonarQube and config:**
-   You can access the SonarQube using the public IP of your EC2 instance and the specified load balancer port 9000 (default for SonarQube):
+9. **Access Prometheus:**
+   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 9090 (default for Prometheus):
 
 ```bash
-echo "http://<ec2-instance-public-ip>:9000"
+echo "http://<ec2-instance-public-ip>:9090"
 ```
 
-Open a web browser and navigate to http://<ec2-instance-public-ip>:9000. You should see the login form. Default login credentials are: login - admin, pw - admin.
+Open a web browser and navigate to http://<ec2-instance-public-ip>:9090.
 
-After login you need to create a project and generate a project token, which you need to provide in your Jenkinsfile for the pipeline.
+9. **Check Prometheus dashboard and data collection:**
+   Ensure Prometheus is collecting essential cluster-specific metrics, such as nodes' memory usage. Check the collected metrics via the Prometheus web interface.
 
-9. **Login to Jenkins and config:**
-   You can access the Jenkins using the public IP of your EC2 instance and the specified load balancer port 8080 (default for Jenkins):
+### Main Metrics
 
-```bash
-echo "http://<ec2-instance-public-ip>:9000"
-```
-
-Retrieve the Jenkins admin password:
-
-```bash
-kubectl exec --namespace jenkins -it svc/my-jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password
-```
-
-Or get it from EC2 user_data script output:
-
-```bash
-cat /var/log/cloud-init-output.log
-
-```
-
-Open a web browser and navigate to http://<ec2-instance-public-ip>:9000. You should see the login form. Default login credentials are: login - admin, pw - retrieved from the jenkins file.
-
-After login you need to install plugins: Email Extension Plugin (for notifications), SonarQube Scanner for Jenkins, Amazon EC2 plugin (to get custom AWS credentials), Generic Webhook Trigger plugin (for the trigger on pushes to the other repository with app and Dockerfile).
-
-Then you need to create credentials for the email access (also a google app password in google console, if needed) and aws credentials for the pipeline. Make sure that AWS credentials for this user (role) in IAM include permission to access EC2ContainerRegistry.
-
-For the detailed screenshots check [PR](https://github.com/elian-cheng/rsschool-devops-course-tasks/pull/9)
-
-10. **Setup the webhook trigger**
-    In github settings in other repo (docker application):
-    Settings > Webhooks > Add webhook > Payload URL ↓
-
-```bash
-http://<ec2-instance-public-ip>:8080/generic-webhook-trigger/invoke?<token-name>
-```
-
-11. **Jenkins job config**
-    Create a new pipeline job, and config build triggers to use generic webhook trigger, add a token name
-
-12. **Start the Jenkins job**:
-    You can start the job manually or it would start automatically on push to the app repo.
-    By default SHOULD_PUSH_TO_ECR is set to false in Jenkins file, so you can manually override it
-    by using "Build with Parameters" option in Jenkins and set it to true, so it would also
-    push the image to ECR and deploy to the Kubernetes cluster with Helm.
+- node_cpu_seconds_total:
+  Total CPU time spent in various states. This metric is crucial for assessing the CPU usage on a node, aiding in performance analysis and scaling decisions.
+- node_memory_MemAvailable_bytes:
+  Available memory.
+- node_memory_Active_bytes:
+  Indicates the amount of active memory on a node in bytes. Gets memory utilization efficiency at the node level and prevents scenarios where a node might run out of memory.
+- node_disk_io_time_seconds_total:
+  Total disk I/O time.
+- node_network_receive_bytes_total:
+  Total bytes received over the network. Useful for identifying network congestion or abnormal traffic that may suggest problems or security threats.
+- kube_pod_status_phase:
+  Current status of pods (Running, Pending, Failed, etc.). Helps in monitoring the number of pods in each state and quickly identifying any issues.
+- kube_deployment_status_replicas:
+  Number of replicas per deployment.
+- kube_node_status_condition:
+  Status conditions of nodes.
+- kube_pod_container_status_restarts_total:
+  Tracks the total number of container restarts. A high number of restarts may indicate issues with pod stability or application configuration.
