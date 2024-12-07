@@ -193,5 +193,4 @@ GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBal
 echo "Prometheus is accessible at http://$PROMETHEUS_IP:9090"
 echo "Grafana is accessible at http://$GRAFANA_IP:3000"
 
-# Ensure the services are running
 kubectl get pods -A
