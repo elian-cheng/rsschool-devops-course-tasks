@@ -177,16 +177,16 @@ kubectl get svc -A
 ```
 
 9. **Access Prometheus:**
-   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 80 (default for Prometheus):
+   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 9090 (default for Prometheus):
 
 ```bash
-echo "http://<ec2-instance-public-ip>:80"
+echo "http://<ec2-instance-public-ip>:9090"
 ```
 
-Open a web browser and navigate to http://<ec2-instance-public-ip>:80.
+Open a web browser and navigate to http://ec2-instance-public-ip:9090.
 
-9. **Check Prometheus dashboard and data collection:**
-   Ensure Prometheus is collecting essential cluster-specific metrics, such as nodes' memory usage. Check the collected metrics via the Prometheus web interface.
+10. **Check Prometheus dashboard and data collection:**
+    Ensure Prometheus is collecting essential cluster-specific metrics, such as nodes' memory usage. Check the collected metrics via the Prometheus web interface.
 
 ### Main Metrics
 
@@ -208,3 +208,25 @@ Open a web browser and navigate to http://<ec2-instance-public-ip>:80.
   Status conditions of nodes.
 - kube_pod_container_status_restarts_total:
   Tracks the total number of container restarts. A high number of restarts may indicate issues with pod stability or application configuration.
+
+11. **Access Grafana:**
+    You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 3000 (default for Grafana):
+
+```bash
+echo "http://<ec2-instance-public-ip>:3000"
+```
+
+Open a web browser and navigate to http://ec2-instance-public-ip:3000.
+
+Default Credentials:
+Username: admin
+Password: (configured with your own password, set in the Helm installation command)
+
+12. **Check Grafana dashboard:**
+    Once logged in to Grafana, you can verify that the system metrics dashboard is correctly loaded, and Prometheus is being used as the data source for Grafana. Ensure that the "System Metrics" dashboard is visible, and check for the following panels:
+
+- CPU Usage
+- Memory Usage
+- Disk Usage
+
+  These panels will show the metrics that Grafana is pulling from Prometheus.

@@ -36,7 +36,7 @@ install_package "apt-transport-https"
 install_package "git"
 
 # Install k3s with public IP in TLS SAN
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s 2ip.io)" sh -s -
 
 # Wait for k3s to be ready
 while ! kubectl get nodes; do
@@ -75,7 +75,7 @@ helm upgrade --install prometheus bitnami/kube-prometheus \
   --namespace monitoring \
   --create-namespace \
   --set prometheus.service.type=LoadBalancer \
-  --set prometheus.service.port=80 \
+  --set prometheus.service.port=9090 \
   --set prometheus.resources.limits.cpu=200m \
   --set prometheus.resources.limits.memory=256Mi \
   --set prometheus.resources.requests.cpu=100m \
@@ -159,14 +159,10 @@ DASHBOARD_PATH="/opt/grafana/dashboards/system_metrics.json"
 mkdir -p "$(dirname "$DASHBOARD_PATH")"
 echo "$DASHBOARD_JSON" > "$DASHBOARD_PATH"
 
-# Set proper permissions for Grafana to access the dashboard directory
-sudo chown -R grafana:grafana /opt/grafana/dashboards
-sudo chmod -R 755 /opt/grafana/dashboards
-
 # Fetch the EC2 instance's public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
-# Grafana installation
+# Install Grafana
 helm upgrade --install grafana bitnami/grafana \
   --namespace monitoring \
   --create-namespace \
@@ -176,7 +172,7 @@ helm upgrade --install grafana bitnami/grafana \
   --set dashboards.default.system_metrics.file="$DASHBOARD_PATH" \
   --set datasources.default.datasources[0].name=Prometheus \
   --set datasources.default.datasources[0].type=prometheus \
-  --set datasources.default.datasources[0].url="http://$PUBLIC_IP:80" \
+  --set datasources.default.datasources[0].url="http://$PUBLIC_IP:9090" \
   --set datasources.default.datasources[0].access=direct \
   --set datasources.default.datasources[0].isDefault=true
 
@@ -184,10 +180,18 @@ helm upgrade --install grafana bitnami/grafana \
 kubectl get pods -n monitoring
 kubectl get svc -n monitoring
 
-# Get public IP
-echo "Public IP: $PUBLIC_IP"
-echo "Prometheus is accessible at http://$PUBLIC_IP:80"
-echo "Grafana is accessible at http://$PUBLIC_IP:3000"
+# Expose Prometheus service on LoadBalancer
+kubectl patch svc prometheus-kube-prometheus-prometheus -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
+# Expose Grafana service on LoadBalancer
+kubectl patch svc grafana -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
+
+# Get public IP for services
+PROMETHEUS_IP=$(kubectl get svc prometheus-kube-prometheus-prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Output accessible URLs
+echo "Prometheus is accessible at http://$PROMETHEUS_IP:9090"
+echo "Grafana is accessible at http://$GRAFANA_IP:3000"
 
 # Ensure the services are running
 kubectl get pods -A
