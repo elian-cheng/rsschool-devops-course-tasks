@@ -1,0 +1,58 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "system_metrics_dashboard",
+    "title": "System Metrics",
+    "tags": ["system", "metrics"],
+    "timezone": "browser",
+    "schemaVersion": 26,
+    "version": 1,
+    "panels": [
+      {
+        "type": "graph",
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_cpu_seconds_total{mode='user'}[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "percent"
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_memory_Active_bytes[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "bytes"
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Disk Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_filesystem_size_bytes[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "bytes"
+        }
+      }
+    ]
+  }
+}

@@ -7,6 +7,7 @@ data "aws_ami" "ubuntu_ami" {
     values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 }
+
 resource "aws_instance" "K8S_K3S_master" {
   ami               = data.aws_ami.ubuntu_ami.id
   instance_type     = var.k8s_master_instance_type

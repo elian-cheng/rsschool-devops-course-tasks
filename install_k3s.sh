@@ -70,42 +70,124 @@ command -v helm &>/dev/null || { echo "Helm installation failed."; exit 1; }
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-# Install Prometheus using Bitnami Helm chart
-echo "Installing Prometheus using Bitnami Helm chart..."
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-kubectl create namespace monitoring || echo "Namespace monitoring already exists."
-
-helm install prometheus prometheus-community/prometheus \
+# Install Prometheus using Bitnami Helm chart with inline values
+helm upgrade --install prometheus bitnami/kube-prometheus \
   --namespace monitoring \
-  --set server.service.type=LoadBalancer \
-  --set alertmanager.service.type=LoadBalancer \
-  --set pushgateway.service.type=LoadBalancer
+  --create-namespace \
+  --set prometheus.service.type=LoadBalancer \
+  --set prometheus.service.port=80 \
+  --set prometheus.resources.limits.cpu=200m \
+  --set prometheus.resources.limits.memory=256Mi \
+  --set prometheus.resources.requests.cpu=100m \
+  --set prometheus.resources.requests.memory=128Mi \
+  --set prometheus.retention=7d \
+  --set prometheus.replicas=1 \
+  --set alertmanager.enabled=false \
+  --set nodeExporter.resources.limits.cpu=50m \
+  --set nodeExporter.resources.limits.memory=64Mi \
+  --set nodeExporter.resources.requests.cpu=25m \
+  --set nodeExporter.resources.requests.memory=32Mi \
+  --set kubeStateMetrics.resources.limits.cpu=100m \
+  --set kubeStateMetrics.resources.limits.memory=128Mi \
+  --set kubeStateMetrics.resources.requests.cpu=50m \
+  --set kubeStateMetrics.resources.requests.memory=64Mi \
+  --set prometheusOperator.enabled=true \
+  --set prometheusOperator.replicas=1
 
-echo "Waiting for Prometheus to be ready..."
-while [[ $(kubectl get pods -n monitoring -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
-  echo "Waiting for Prometheus pod to be ready..."
-  sleep 10
-done
+# Define dashboard JSON file
+DASHBOARD_JSON='{
+  "dashboard": {
+    "id": null,
+    "uid": "system_metrics_dashboard",
+    "title": "System Metrics",
+    "tags": ["system", "metrics"],
+    "timezone": "browser",
+    "schemaVersion": 26,
+    "version": 1,
+    "panels": [
+      {
+        "type": "graph",
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_cpu_seconds_total{mode='user'}[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "percent"
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_memory_Active_bytes[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "bytes"
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Disk Usage",
+        "targets": [
+          {
+            "target": "avg(rate(node_filesystem_size_bytes[1m])) by (instance)"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "yaxis": {
+          "format": "bytes"
+        }
+      }
+    ]
+  }
+}'
 
-# Install Node Exporter
-echo "Installing Node Exporter..."
-helm install node-exporter prometheus-community/prometheus-node-exporter --namespace monitoring
+# Write dashboard JSON to file
+DASHBOARD_PATH="/opt/grafana/dashboards/system_metrics.json"
+mkdir -p "$(dirname "$DASHBOARD_PATH")"
+echo "$DASHBOARD_JSON" > "$DASHBOARD_PATH"
 
-# Install Kube State Metrics
-echo "Installing Kube State Metrics..."
-helm install kube-state-metrics prometheus-community/kube-state-metrics --namespace monitoring
+# Set proper permissions for Grafana to access the dashboard directory
+sudo chown -R grafana:grafana /opt/grafana/dashboards
+sudo chmod -R 755 /opt/grafana/dashboards
 
-# Verify Prometheus installation
-echo "Verifying Prometheus installation..."
+# Fetch the EC2 instance's public IP
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# Grafana installation
+helm upgrade --install grafana bitnami/grafana \
+  --namespace monitoring \
+  --create-namespace \
+  --set service.type=LoadBalancer \
+  --set service.port=3000 \
+  --set admin.password="${var.grafana_admin_password}" \
+  --set dashboards.default.system_metrics.file="$DASHBOARD_PATH" \
+  --set datasources.default.datasources[0].name=Prometheus \
+  --set datasources.default.datasources[0].type=prometheus \
+  --set datasources.default.datasources[0].url="http://$PUBLIC_IP:80" \
+  --set datasources.default.datasources[0].access=direct \
+  --set datasources.default.datasources[0].isDefault=true
+
+# Verify installation
 kubectl get pods -n monitoring
 kubectl get svc -n monitoring
 
 # Get public IP
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "Public IP: $PUBLIC_IP"
 echo "Prometheus is accessible at http://$PUBLIC_IP:80"
+echo "Grafana is accessible at http://$PUBLIC_IP:3000"
 
 # Ensure the services are running
 kubectl get pods -A
