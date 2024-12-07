@@ -8,6 +8,14 @@ data "aws_ami" "ubuntu_ami" {
   }
 }
 
+data "template_file" "user_data" {
+  template = file("install_k3s.sh")
+
+  vars = {
+    grafana_admin_password = var.grafana_admin_password
+  }
+}
+
 resource "aws_instance" "K8S_K3S_master" {
   ami               = data.aws_ami.ubuntu_ami.id
   instance_type     = var.k8s_master_instance_type
@@ -26,7 +34,7 @@ resource "aws_instance" "K8S_K3S_master" {
     delete_on_termination = true
   }
 
-  user_data = file("install_k3s.sh")
+  user_data = data.template_file.user_data.rendered
 
   tags = {
     Name = "K8S K3s Master"

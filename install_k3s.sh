@@ -168,7 +168,7 @@ helm upgrade --install grafana bitnami/grafana \
   --create-namespace \
   --set service.type=LoadBalancer \
   --set service.port=3000 \
-  --set admin.password="${var.grafana_admin_password}" \
+  --set admin.password="${grafana_admin_password}" \
   --set dashboards.default.system_metrics.file="$DASHBOARD_PATH" \
   --set datasources.default.datasources[0].name=Prometheus \
   --set datasources.default.datasources[0].type=prometheus \
