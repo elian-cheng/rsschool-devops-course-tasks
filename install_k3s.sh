@@ -89,8 +89,8 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "High CPU utilization detected on node {{ $labels.instance }}"
-              description: "Node {{ $labels.instance }} is using over 80% CPU for the last 1 minute."
+              summary: "High CPU utilization detected on node {{$labels.instance}}"
+              description: "Node {{$labels.instance}} is using over 80% CPU for the last 1 minute."
 
           - alert: CpuCoresCapacityExhausted
             expr: |
@@ -99,8 +99,8 @@ serverFiles:
             labels:
               severity: critical
             annotations:
-              summary: "CPU cores capacity almost exhausted on node {{ $labels.instance }}"
-              description: "Node {{ $labels.instance }} has less than 1 cores available for allocation."
+              summary: "CPU cores capacity almost exhausted on node {{$labels.instance}}"
+              description: "Node {{$labels.instance}} has less than 1 cores available for allocation."
 alertmanagerFiles:
   alertmanager.yml:
     global:
@@ -118,7 +118,7 @@ alertmanagerFiles:
             send_resolved: true
             headers:
               subject: "Prometheus - Alert"
-              text: "{{ range .Alerts }} Hi, \n{{ .Annotations.summary }} \n {{ .Annotations.description }} {{end}} "
+              text: "{{range .Alerts }} Hi, \n{{.Annotations.summary }} \n {{.Annotations.description}} {{end}} "
 
       - name: "all-notifications"
         email_configs:
@@ -131,7 +131,7 @@ alertmanagerFiles:
             send_resolved: true
             headers:
               subject: "Prometheus - Alert"
-              text: "{{ range .Alerts }} Hi, \n{{ .Annotations.summary }} \n {{ .Annotations.description }} {{end}} "
+              text: "{{range .Alerts}} Hi, \n{{.Annotations.summary}} \n {{.Annotations.description}} {{end}} "
 
     route:
       group_wait: 10s
@@ -191,10 +191,6 @@ kubectl get svc -n monitoring
 
 # Expose Grafana service on LoadBalancer
 kubectl patch svc grafana -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
-
-# Get public IP for services
-PROMETHEUS_IP=$(kubectl get svc prometheus-kube-prometheus-prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Output accessible URLs
 echo "Prometheus is accessible at http://$PUBLIC_IP:80"
