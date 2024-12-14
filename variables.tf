@@ -75,3 +75,8 @@ variable "grafana_admin_password" {
   type        = string
   sensitive   = true
 }
+variable "google_password" {
+  description = "Google email password"
+  type        = string
+  sensitive   = true
+}

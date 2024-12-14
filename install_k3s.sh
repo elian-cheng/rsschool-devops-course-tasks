@@ -70,94 +70,104 @@ command -v helm &>/dev/null || { echo "Helm installation failed."; exit 1; }
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-# Install Prometheus using Bitnami Helm chart with inline values
-helm upgrade --install prometheus bitnami/kube-prometheus \
+# Install Prometheus using Bitnami Helm chart
+echo "Installing Prometheus using Bitnami Helm chart..."
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Define values.yaml content
+VALUES_YAML=`
+serverFiles:
+  alerting_rules.yml:
+    groups:
+      - name: k8s-alerts
+        rules:
+          - alert: HighCpuUtilization
+            expr: |
+              sum(rate(node_cpu_seconds_total{mode!="idle"}[2m])) / sum(machine_cpu_cores) > 0.8
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU utilization detected on node {{ $labels.instance }}"
+              description: "Node {{ $labels.instance }} is using over 80% CPU for the last 1 minute."
+
+          - alert: CpuCoresCapacityExhausted
+            expr: |
+              sum(machine_cpu_cores) - sum(rate(node_cpu_seconds_total{mode!="idle"}[2m])) < 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "CPU cores capacity almost exhausted on node {{ $labels.instance }}"
+              description: "Node {{ $labels.instance }} has less than 1 cores available for allocation."
+alertmanagerFiles:
+  alertmanager.yml:
+    global:
+      resolve_timeout: 1m
+
+    receivers:
+      - name: "gmail-notifications"
+        email_configs:
+          - to: eliang.cheng@gmail.com
+            from: eliang.cheng@gmail.com
+            smarthost: smtp.gmail.com:587
+            auth_username: eliang.cheng@gmail.com
+            auth_identity: eliang.cheng@gmail.com
+            auth_password: "${google_password}"
+            send_resolved: true
+            headers:
+              subject: "Prometheus - Alert"
+              text: "{{ range .Alerts }} Hi, \n{{ .Annotations.summary }} \n {{ .Annotations.description }} {{end}} "
+
+      - name: "all-notifications"
+        email_configs:
+          - to: eliang.cheng@gmail.com
+            from: eliang.cheng@gmail.com
+            smarthost: smtp.gmail.com:587
+            auth_username: eliang.cheng@gmail.com
+            auth_identity: eliang.cheng@gmail.com
+            auth_password: "${google_password}"
+            send_resolved: true
+            headers:
+              subject: "Prometheus - Alert"
+              text: "{{ range .Alerts }} Hi, \n{{ .Annotations.summary }} \n {{ .Annotations.description }} {{end}} "
+
+    route:
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 2m
+      receiver: "all-notifications"
+`
+
+# Write values.yaml to file
+VALUES_PATH="/opt/conf/helm/prometheus/values.yaml"
+mkdir -p "$(dirname "$VALUES_PATH")"
+echo "$VALUES_YAML" > "$VALUES_PATH"
+
+# Install Prometheus using Bitnami Helm chart with values file
+helm install prometheus prometheus-community/prometheus \
   --namespace monitoring \
   --create-namespace \
-  --set prometheus.service.type=LoadBalancer \
-  --set prometheus.service.port=9090 \
-  --set prometheus.resources.limits.cpu=200m \
-  --set prometheus.resources.limits.memory=256Mi \
-  --set prometheus.resources.requests.cpu=100m \
-  --set prometheus.resources.requests.memory=128Mi \
-  --set prometheus.retention=7d \
-  --set prometheus.replicas=1 \
-  --set alertmanager.enabled=false \
-  --set nodeExporter.resources.limits.cpu=50m \
-  --set nodeExporter.resources.limits.memory=64Mi \
-  --set nodeExporter.resources.requests.cpu=25m \
-  --set nodeExporter.resources.requests.memory=32Mi \
-  --set kubeStateMetrics.resources.limits.cpu=100m \
-  --set kubeStateMetrics.resources.limits.memory=128Mi \
-  --set kubeStateMetrics.resources.requests.cpu=50m \
-  --set kubeStateMetrics.resources.requests.memory=64Mi \
-  --set prometheusOperator.enabled=true \
-  --set prometheusOperator.replicas=1
+  --set server.service.type=LoadBalancer \
+  --set alertmanager.service.type=LoadBalancer \
+  --set pushgateway.service.type=LoadBalancer
+  -f "$VALUES_PATH"
 
-# Define dashboard JSON file
-DASHBOARD_JSON='{
-  "dashboard": {
-    "id": null,
-    "uid": "system_metrics_dashboard",
-    "title": "System Metrics",
-    "tags": ["system", "metrics"],
-    "timezone": "browser",
-    "schemaVersion": 26,
-    "version": 1,
-    "panels": [
-      {
-        "type": "graph",
-        "title": "CPU Usage",
-        "targets": [
-          {
-            "target": "avg(rate(node_cpu_seconds_total{mode='user'}[1m])) by (instance)"
-          }
-        ],
-        "xaxis": {
-          "mode": "time"
-        },
-        "yaxis": {
-          "format": "percent"
-        }
-      },
-      {
-        "type": "graph",
-        "title": "Memory Usage",
-        "targets": [
-          {
-            "target": "avg(rate(node_memory_Active_bytes[1m])) by (instance)"
-          }
-        ],
-        "xaxis": {
-          "mode": "time"
-        },
-        "yaxis": {
-          "format": "bytes"
-        }
-      },
-      {
-        "type": "graph",
-        "title": "Disk Usage",
-        "targets": [
-          {
-            "target": "avg(rate(node_filesystem_size_bytes[1m])) by (instance)"
-          }
-        ],
-        "xaxis": {
-          "mode": "time"
-        },
-        "yaxis": {
-          "format": "bytes"
-        }
-      }
-    ]
-  }
-}'
 
-# Write dashboard JSON to file
-DASHBOARD_PATH="/opt/grafana/dashboards/system_metrics.json"
-mkdir -p "$(dirname "$DASHBOARD_PATH")"
-echo "$DASHBOARD_JSON" > "$DASHBOARD_PATH"
+echo "Waiting for Prometheus to be ready..."
+while [[ $(kubectl get pods -n monitoring -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
+  echo "Waiting for Prometheus pod to be ready..."
+  sleep 10
+done
+
+# Install Node Exporter
+echo "Installing Node Exporter..."
+helm install node-exporter prometheus-community/prometheus-node-exporter --namespace monitoring
+
+# Install Kube State Metrics
+echo "Installing Kube State Metrics..."
+helm install kube-state-metrics prometheus-community/kube-state-metrics --namespace monitoring
 
 # Fetch the EC2 instance's public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
@@ -169,19 +179,16 @@ helm upgrade --install grafana bitnami/grafana \
   --set service.type=LoadBalancer \
   --set service.port=3000 \
   --set admin.password="${grafana_admin_password}" \
-  --set dashboards.default.system_metrics.file="$DASHBOARD_PATH" \
   --set datasources.default.datasources[0].name=Prometheus \
   --set datasources.default.datasources[0].type=prometheus \
-  --set datasources.default.datasources[0].url="http://$PUBLIC_IP:9090" \
-  --set datasources.default.datasources[0].access=direct \
+  --set datasources.default.datasources[0].url="http://$PUBLIC_IP:80" \
+  --set datasources.default.datasources[0].access=proxy \
   --set datasources.default.datasources[0].isDefault=true
 
 # Verify installation
 kubectl get pods -n monitoring
 kubectl get svc -n monitoring
 
-# Expose Prometheus service on LoadBalancer
-kubectl patch svc prometheus-kube-prometheus-prometheus -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
 # Expose Grafana service on LoadBalancer
 kubectl patch svc grafana -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
 
@@ -190,7 +197,7 @@ PROMETHEUS_IP=$(kubectl get svc prometheus-kube-prometheus-prometheus -n monitor
 GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Output accessible URLs
-echo "Prometheus is accessible at http://$PROMETHEUS_IP:9090"
-echo "Grafana is accessible at http://$GRAFANA_IP:3000"
+echo "Prometheus is accessible at http://$PUBLIC_IP:80"
+echo "Grafana is accessible at http://$PUBLIC_IP:3000"
 
 kubectl get pods -A

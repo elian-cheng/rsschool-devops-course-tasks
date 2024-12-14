@@ -16,7 +16,9 @@
     ]
   },
   "editable": true,
-  "id": null,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -27,9 +29,57 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           }
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -38,14 +88,38 @@
         "y": 0
       },
       "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.3.0-pre",
       "targets": [
         {
-          "expr": "avg(rate(node_cpu_seconds_total{mode=\"user\"}[1m])) by (instance)",
-          "format": "time_series",
-          "legendFormat": "{{instance}}"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ee687i513qh34a"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "expr": "avg without (mode,cpu) (\n  (1 - rate(node_cpu_seconds_total{mode=\"idle\"}[2m])) * 100\n)",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
         }
       ],
-      "title": "CPU Usage",
+      "title": "CPU  Usage %",
       "type": "timeseries"
     },
     {
@@ -56,9 +130,45 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
           }
-        }
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "{device=\"/dev/root\", fstype=\"ext4\", instance=\"10.0.1.217:9100\", job=\"node-exporter\", mountpoint=\"/\"}"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": []
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -66,16 +176,35 @@
         "x": 12,
         "y": 0
       },
-      "id": 2,
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "inverted",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": true,
+        "text": {},
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0-pre",
       "targets": [
         {
-          "expr": "avg(rate(node_memory_Active_bytes[1m])) by (instance)",
-          "format": "time_series",
-          "legendFormat": "{{instance}}"
+          "editorMode": "code",
+          "expr": "((node_filesystem_size_bytes - node_filesystem_avail_bytes{mountpoint=\"/\"}) / node_filesystem_size_bytes) * 100",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
         }
       ],
-      "title": "Memory Usage",
-      "type": "timeseries"
+      "title": "Disk Usage %",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -85,9 +214,24 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           }
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -95,27 +239,48 @@
         "x": 0,
         "y": 8
       },
-      "id": 3,
+      "id": 2,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.3.0-pre",
       "targets": [
         {
-          "expr": "avg(rate(node_filesystem_size_bytes[1m])) by (instance)",
-          "format": "time_series",
-          "legendFormat": "{{instance}}"
+          "editorMode": "code",
+          "expr": "node_memory_MemFree_bytes / (1024 * 1024)",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
         }
       ],
-      "title": "Disk Usage",
-      "type": "timeseries"
+      "title": "Free Memory (MB)",
+      "type": "gauge"
     }
   ],
-  "refresh": "10s",
-  "schemaVersion": 26,
-  "tags": ["system", "metrics"],
+  "preload": false,
+  "schemaVersion": 40,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
+  "timepicker": {},
   "timezone": "browser",
-  "title": "System Metrics K8s",
-  "uid": "system_metrics_k8s",
-  "version": 1
+  "title": "Node dashboard",
+  "uid": "node-dashboard",
+  "version": 10,
+  "weekStart": ""
 }

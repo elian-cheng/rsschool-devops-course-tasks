@@ -13,6 +13,7 @@ data "template_file" "user_data" {
 
   vars = {
     grafana_admin_password = var.grafana_admin_password
+    google_password        = var.google_password
   }
 }
 
