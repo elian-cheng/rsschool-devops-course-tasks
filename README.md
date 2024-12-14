@@ -177,13 +177,13 @@ kubectl get svc -A
 ```
 
 9. **Access Prometheus:**
-   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 9090 (default for Prometheus):
+   You can access Prometheus using the public IP of your EC2 instance and the specified load balancer port 80 (default for Prometheus):
 
 ```bash
-echo "http://<ec2-instance-public-ip>:9090"
+echo "http://<ec2-instance-public-ip>:80"
 ```
 
-Open a web browser and navigate to http://ec2-instance-public-ip:9090.
+Open a web browser and navigate to http://ec2-instance-public-ip:80.
 
 10. **Check Prometheus dashboard and data collection:**
     Ensure Prometheus is collecting essential cluster-specific metrics, such as nodes' memory usage. Check the collected metrics via the Prometheus web interface.
@@ -230,3 +230,27 @@ Password: (configured with your own password, set in the Helm installation comma
 - Disk Usage
 
   These panels will show the metrics that Grafana is pulling from Prometheus.
+
+13. **Alert rules**
+    Alert rules are defined in user_data script on instance start, so they would be applied automatically and you can see them on http://instance-ip/alerts
+    For email notifications I use gmail with app passwords, that can be managed in the google settings - https://myaccount.google.com/apppasswords
+    The password is passed via github secrets.
+
+14. **Test the alertmanager**
+    Run some stress command to increase the load on the cluster. This would temporarily create a test pod that would generate a higher CPU load and memory usage (considering I have t3.medium instance):
+
+```bash
+kubectl run cpu-stress --image=alpine --restart=Never -- sh -c "apk add stress-ng && stress-ng --cpu 4 --vm 2 --vm-bytes 2G --timeout 3m"
+```
+
+Later, when alerts are verified, you can delete the pod:
+
+```bash
+kubectl delete pod cpu-stress
+```
+
+You can also check the alert manager logs:
+
+```bash
+kubectl logs <alertmanager-pod-name> -n monitoring
+```
