@@ -150,11 +150,10 @@ echo "$VALUES_YAML" > "$VALUES_PATH"
 helm install prometheus prometheus-community/prometheus \
   --namespace monitoring \
   --create-namespace \
+  -f "$VALUES_PATH" \
   --set server.service.type=LoadBalancer \
   --set alertmanager.service.type=LoadBalancer \
   --set pushgateway.service.type=LoadBalancer
-  -f "$VALUES_PATH"
-
 
 echo "Waiting for Prometheus to be ready..."
 while [[ $(kubectl get pods -n monitoring -o jsonpath='{.items[*].status.containerStatuses[*].ready}' 2>/dev/null | grep -c "true") -ne 1 ]]; do
