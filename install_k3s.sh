@@ -76,7 +76,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Define values.yaml content
-VALUES_YAML=`
+VALUES_YAML=$(cat <<EOF
 serverFiles:
   alerting_rules.yml:
     groups:
@@ -138,7 +138,8 @@ alertmanagerFiles:
       group_interval: 2m
       repeat_interval: 2m
       receiver: "all-notifications"
-`
+EOF
+)
 
 # Write values.yaml to file
 VALUES_PATH="/opt/conf/helm/prometheus/values.yaml"
