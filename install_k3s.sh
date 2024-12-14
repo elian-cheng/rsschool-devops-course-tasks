@@ -76,6 +76,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Define values.yaml content
+# Define values.yaml content
 VALUES_YAML=$(cat <<EOF
 serverFiles:
   alerting_rules.yml:
@@ -89,8 +90,8 @@ serverFiles:
             labels:
               severity: warning
             annotations:
-              summary: "High CPU utilization detected on node {{$labels.instance}}"
-              description: "Node {{$labels.instance}} is using over 80% CPU for the last 1 minute."
+              summary: "High CPU utilization detected on node {{ \$labels.instance }}"
+              description: "Node {{ \$labels.instance }} is using over 80% CPU for the last 1 minute."
 
           - alert: CpuCoresCapacityExhausted
             expr: |
@@ -99,8 +100,8 @@ serverFiles:
             labels:
               severity: critical
             annotations:
-              summary: "CPU cores capacity almost exhausted on node {{$labels.instance}}"
-              description: "Node {{$labels.instance}} has less than 1 cores available for allocation."
+              summary: "CPU cores capacity almost exhausted on node {{ \$labels.instance }}"
+              description: "Node {{ \$labels.instance }} has less than 1 cores available for allocation."
 alertmanagerFiles:
   alertmanager.yml:
     global:
